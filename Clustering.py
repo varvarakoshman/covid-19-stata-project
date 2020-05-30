@@ -56,9 +56,12 @@ def main():
     # hashtags_not_rare = [i for i in sorted_freq_hashtags if 3 < word_freq[i] < 10000]
 
     # 2) clustering hashtags that appear everyday
-    df2 = pd.read_csv("data/us_dates_to_everyday_hashtags.csv")
+    df2 = pd.read_csv("data/0_en_dates_to_everyday_hashtags.csv")
     hashtags_not_rare = df2['hashtags'].tolist()
-    embeddings = [model[i] for i in hashtags_not_rare]
+
+    words_contained = list(filter(lambda x: x in model.wv.vocab, hashtags_not_rare))
+
+    embeddings = [model[i] for i in words_contained]
 
     # 3) check optimal number of clusters
     wcss = []
@@ -72,7 +75,7 @@ def main():
     plt.ylabel('wcss')
     plt.show()
 
-    NUM_CLUSTERS = 7
+    NUM_CLUSTERS = 5
     kmeans_model = cluster.KMeans(n_clusters=NUM_CLUSTERS, init='k-means++')
     labels = kmeans_model.fit_predict(embeddings)
     cluster_map = pd.DataFrame()
@@ -89,18 +92,18 @@ def main():
     centroid3 = np.array(centroids[2])
     centroid4 = np.array(centroids[3])
     centroid5 = np.array(centroids[4])
-    centroid6 = np.array(centroids[5])
-    centroid7 = np.array(centroids[6])
-    all_centroids = [centroid1, centroid2, centroid3, centroid4, centroid5, centroid6, centroid7]
+    all_centroids = [centroid1, centroid2, centroid3, centroid4, centroid5]
 
     tweets_dict = {} # dict: {hashtag: (cluster, dist(hashtag, centroid))}
-    for hashtag in hashtags_not_rare:
-        tempd = {}
+    for hashtag in words_contained:
+        # tempd = {}
+        tweets_dict[hashtag] = []
         for ind, centroid in enumerate(all_centroids):
-            tempd[compute_distance(centroid, np.array(model[hashtag]))] = ind
-        min_dist = np.amin(list(tempd.keys()))
-        cluster_n = tempd[min_dist]
-        tweets_dict[hashtag] = tuple([cluster_n, min_dist])
+            dist = compute_distance(centroid, np.array(model[hashtag]))
+            tweets_dict[hashtag].append(tuple([ind, dist]))
+        # min_dist = np.amin(list(tempd.keys()))
+        # cluster_n = tempd[min_dist]
+        # tweets_dict[hashtag] = tuple([cluster_n, min_dist])
 
     # clustering
     #
